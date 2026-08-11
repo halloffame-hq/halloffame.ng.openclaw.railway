@@ -183,6 +183,8 @@ Each container start performs:
 ```text
 Railway volume mounted at /data
         ↓
+repair /data/.openclaw ownership to node (uid/gid 1000)
+        ↓
 baseline OpenClaw state created when missing
         ↓
 Hall Of Fame skill copied into /data/.openclaw/skills/halloffame
@@ -199,6 +201,19 @@ Gateway starts on Railway's $PORT
 ```
 
 The Gateway is the foreground process supervised by Railway.
+
+## Automatic volume ownership recovery
+
+Railway may mount a persistent volume with root ownership. The container startup script repairs the OpenClaw state before invoking the CLI:
+
+```bash
+chown node:node "$DATA_DIR"
+chown -R node:node "$OPENCLAW_STATE_DIR"
+```
+
+This runs on every container start, before `openclaw setup`, `openclaw config`, validation, or Gateway startup.
+
+If a previous deployment wrote `/data/.openclaw/openclaw.json` as root, deploying a new image with this startup script repairs the persisted file automatically. Shell access to the failed deployment is not required.
 
 ## Verify the deployment
 
