@@ -20,19 +20,11 @@ run_openclaw() {
     openclaw "$@"
 }
 
-# /*
-#  * Railway volumes may be mounted with root ownership. OpenClaw runs as
-#  * the node user (uid/gid 1000), so repair persisted state ownership
-#  * before invoking any OpenClaw command.
-#  */
-install -d -m 0755 "$DATA_DIR"
-install -d -m 0700 \
+install -d -m 0755 -o node -g node "$DATA_DIR"
+install -d -m 0700 -o node -g node \
   "$OPENCLAW_STATE_DIR" \
   "$OPENCLAW_STATE_DIR/skills" \
   "$OPENCLAW_STATE_DIR/workspace"
-
-chown node:node "$DATA_DIR"
-chown -R node:node "$OPENCLAW_STATE_DIR"
 
 rm -rf "$OPENCLAW_STATE_DIR/skills/halloffame"
 cp -a /opt/openclaw-skills/halloffame "$OPENCLAW_STATE_DIR/skills/halloffame"

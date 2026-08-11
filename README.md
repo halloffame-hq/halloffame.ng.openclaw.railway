@@ -1,4 +1,4 @@
-# OpenClaw on Railway
+# OpenClaw on Railway (With Hall Of Fame skill)
 
 A small Railway-native OpenClaw deployment that uses the official OpenClaw container image directly.
 
