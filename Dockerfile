@@ -12,6 +12,17 @@ RUN apt-get update \
         tar \
     && rm -rf /var/lib/apt/lists/*
 
+# /*
+#  * GHCR's moving `latest` tag can temporarily trail the npm stable release.
+#  * Install the npm `latest` package into an isolated prefix and make it the
+#  * active CLI/runtime for the rest of the image build.
+#  */
+ARG OPENCLAW_NPM_TAG=latest
+RUN set -eux; \
+    npm install --global --prefix /opt/openclaw-runtime "openclaw@${OPENCLAW_NPM_TAG}"; \
+    ln -sfn /opt/openclaw-runtime/bin/openclaw /usr/local/bin/openclaw; \
+    openclaw --version
+
 ARG HOF_SKILL_REF=@toneflix/halloffame
 ARG HOF_SKILL_VERSION=
 

@@ -11,6 +11,52 @@ export OPENCLAW_HOME="$DATA_DIR"
 export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-$DATA_DIR/.openclaw}"
 export OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-$OPENCLAW_STATE_DIR/openclaw.json}"
 
+
+ensure_latest_openclaw() {
+  local current_version latest_version candidate
+
+  current_version="$(
+    openclaw --version 2>/dev/null \
+      | grep -Eo '[0-9]{4}\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?' \
+      | head -n 1
+  )"
+
+  latest_version="$(npm view openclaw@latest version --silent)"
+
+  if [[ -z "$latest_version" ]]; then
+    printf 'Unable to resolve openclaw@latest from npm.\n' >&2
+    exit 1
+  fi
+
+  if [[ "$current_version" == "$latest_version" ]]; then
+    printf 'OpenClaw is current: %s\n' "$current_version"
+    return 0
+  fi
+
+  printf 'Updating OpenClaw from %s to %s...\n' \
+    "${current_version:-unknown}" \
+    "$latest_version"
+
+  candidate="/opt/openclaw-runtime-next"
+  rm -rf "$candidate"
+
+  npm install \
+    --global \
+    --prefix "$candidate" \
+    "openclaw@${latest_version}"
+
+  test -x "$candidate/bin/openclaw"
+
+  rm -rf /opt/openclaw-runtime
+  mv "$candidate" /opt/openclaw-runtime
+  ln -sfn /opt/openclaw-runtime/bin/openclaw /usr/local/bin/openclaw
+
+  printf 'OpenClaw active version: '
+  openclaw --version
+}
+
+ensure_latest_openclaw
+
 run_openclaw() {
   gosu node env \
     OPENCLAW_HOME="$OPENCLAW_HOME" \

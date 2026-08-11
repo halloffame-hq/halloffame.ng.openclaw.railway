@@ -1,4 +1,4 @@
-# OpenClaw on Railway (With Hall Of Fame skill)
+# OpenClaw on Railway
 
 A small Railway-native OpenClaw deployment that uses the official OpenClaw container image directly.
 
@@ -174,6 +174,43 @@ For a custom domain, set:
 
 ```env
 OPENCLAW_PUBLIC_ORIGIN=https://openclaw.example.com
+```
+
+## OpenClaw release freshness
+
+The image uses the official OpenClaw GHCR image as its base and then installs the stable npm release:
+
+```text
+openclaw@latest
+```
+
+into:
+
+```text
+/opt/openclaw-runtime
+```
+
+The resulting binary is exposed as:
+
+```text
+/usr/local/bin/openclaw
+```
+
+At every container startup, `scripts/start.sh` compares the running OpenClaw version with:
+
+```bash
+npm view openclaw@latest version
+```
+
+If npm has a newer stable release, the script installs it into a temporary isolated prefix and switches `/usr/local/bin/openclaw` only after the new binary is present.
+
+This prevents a temporarily stale GHCR `latest` tag from leaving the Railway Gateway behind the stable npm release.
+
+The base-image selector and npm release channel are separate:
+
+```env
+OPENCLAW_VERSION=latest
+OPENCLAW_NPM_TAG=latest
 ```
 
 ## Hall Of Fame skill source
