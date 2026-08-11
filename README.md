@@ -12,8 +12,8 @@ This repository exists to keep the OpenClaw binary, Gateway lifecycle, persisten
 - Persists OpenClaw state on a Railway Volume.
 - Configures token authentication for the Gateway.
 - Configures the Railway public origin for the Control UI.
-- Fetches the Hall Of Fame skill from `halloffame-hq/halloffame.plugins/agents/halloffame`.
-- Copies that skill into the persistent OpenClaw managed skills directory on each deployment.
+- Installs the Hall Of Fame skill from ClawHub as `@toneflix/halloffame`.
+- Verifies the ClawHub release and copies the verified skill into the persistent OpenClaw managed skills directory on each deployment.
 
 ## Repository structure
 
@@ -136,8 +136,8 @@ Recommended build variables:
 
 ```env
 OPENCLAW_VERSION=latest
-HOF_PLUGINS_REPO=halloffame-hq/halloffame.plugins
-HOF_PLUGINS_REF=main
+HOF_SKILL_REF=@toneflix/halloffame
+HOF_SKILL_VERSION=
 ```
 
 For a deterministic production deployment, replace `latest` with an exact official OpenClaw release tag:
@@ -175,6 +175,53 @@ For a custom domain, set:
 ```env
 OPENCLAW_PUBLIC_ORIGIN=https://openclaw.example.com
 ```
+
+## Hall Of Fame skill source
+
+The deployment source of truth is the published ClawHub skill:
+
+```text
+@toneflix/halloffame
+```
+
+Canonical listing:
+
+```text
+https://clawhub.ai/toneflix/skills/halloffame
+```
+
+During the Docker build the repository runs:
+
+```bash
+openclaw skills verify @toneflix/halloffame
+openclaw skills install @toneflix/halloffame --global
+```
+
+The build then validates that the published package contains `SKILL.md` and `scripts/api.sh`, that the helper passes `bash -n`, and that the published skill implements the documented `REGISTER` and `LOGIN` self-auth flow.
+
+The verified copy is staged in the image and copied into:
+
+```text
+/data/.openclaw/skills/halloffame
+```
+
+on container startup.
+
+Set:
+
+```env
+HOF_SKILL_VERSION=
+```
+
+to resolve the current published version on each image build.
+
+For deterministic production deployments, pin the release:
+
+```env
+HOF_SKILL_VERSION=1.2.3
+```
+
+and deliberately bump the version when a new ClawHub release is approved.
 
 ## Startup flow
 
@@ -271,13 +318,43 @@ and:
 openclaw skills check
 ```
 
-The startup script also enables the skill's explicit authorization gate:
+The startup script enables the Hall Of Fame skill and its explicit authorization gate:
 
 ```text
+skills.entries.halloffame.enabled = true
 skills.entries.halloffame.config.explicitAuthorization = true
 ```
 
 Once an agent is configured, connect through the Gateway-backed TUI and invoke the skill using the command supported by that version of the Hall Of Fame skill.
+
+## Per-agent Hall Of Fame provider identity
+
+Each Hall Of Fame agent workspace should define a stable provider/runtime identifier in addition to its agent id:
+
+```env
+HOF_AGENT_PROVIDER=openclaw
+HOF_AGENT_ID=ada
+```
+
+Hall Of Fame treats the pair as the stable synthetic identity:
+
+```text
+HOF_AGENT_PROVIDER + HOF_AGENT_ID
+```
+
+For OpenClaw agents, use:
+
+```env
+HOF_AGENT_PROVIDER=openclaw
+```
+
+A ready-to-copy template is included at:
+
+```text
+examples/halloffame-agent.env
+```
+
+The Railway service does not set these `HOF_*` identity values globally. They belong to the individual agent workspace so each agent can have a separate Hall Of Fame identity.
 
 ## Create agents
 
@@ -339,7 +416,7 @@ Build:
 ```bash
 docker build \
   --build-arg OPENCLAW_VERSION=latest \
-  --build-arg HOF_PLUGINS_REF=main \
+  --build-arg HOF_SKILL_VERSION= \
   -t openclaw-railway .
 ```
 

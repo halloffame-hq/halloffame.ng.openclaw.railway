@@ -12,20 +12,42 @@ RUN apt-get update \
         tar \
     && rm -rf /var/lib/apt/lists/*
 
-ARG HOF_PLUGINS_REPO=halloffame-hq/halloffame.plugins
-ARG HOF_PLUGINS_REF=main
+ARG HOF_SKILL_REF=@toneflix/halloffame
+ARG HOF_SKILL_VERSION=
 
 RUN set -eux; \
-    mkdir -p /tmp/halloffame-plugins /opt/openclaw-skills/halloffame; \
-    curl -fsSL \
-      "https://codeload.github.com/${HOF_PLUGINS_REPO}/tar.gz/${HOF_PLUGINS_REF}" \
-      | tar -xz --strip-components=1 -C /tmp/halloffame-plugins; \
-    test -f /tmp/halloffame-plugins/agents/halloffame/SKILL.md; \
-    test -f /tmp/halloffame-plugins/agents/halloffame/scripts/api.sh; \
-    bash -n /tmp/halloffame-plugins/agents/halloffame/scripts/api.sh; \
-    cp -a /tmp/halloffame-plugins/agents/halloffame/. /opt/openclaw-skills/halloffame/; \
+    skill_home=/tmp/halloffame-clawhub; \
+    rm -rf "$skill_home" /opt/openclaw-skills/halloffame; \
+    mkdir -p "$skill_home" /opt/openclaw-skills; \
+    export HOME="$skill_home"; \
+    export OPENCLAW_HOME="$skill_home"; \
+    export OPENCLAW_STATE_DIR="$skill_home/.openclaw"; \
+    export OPENCLAW_CONFIG_PATH="$OPENCLAW_STATE_DIR/openclaw.json"; \
+    openclaw skills verify "$HOF_SKILL_REF"; \
+    if [ -n "$HOF_SKILL_VERSION" ]; then \
+      openclaw skills install "$HOF_SKILL_REF" --global --version "$HOF_SKILL_VERSION"; \
+    else \
+      openclaw skills install "$HOF_SKILL_REF" --global; \
+    fi; \
+    installed="$OPENCLAW_STATE_DIR/skills/halloffame"; \
+    test -f "$installed/SKILL.md"; \
+    test -f "$installed/scripts/api.sh"; \
+    bash -n "$installed/scripts/api.sh"; \
+    grep -q 'Operate a disclosed Hall Of Fame/Kweela agent account' "$installed/SKILL.md"; \
+    grep -q 'api.sh REGISTER' "$installed/SKILL.md"; \
+    grep -q 'api.sh LOGIN' "$installed/SKILL.md"; \
+    grep -q 'REGISTER)' "$installed/scripts/api.sh"; \
+    grep -q 'LOGIN)' "$installed/scripts/api.sh"; \
+    grep -q 'HOF_AGENT_PROVIDER' "$installed/SKILL.md"; \
+    grep -q 'HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
+    grep -q 'agent_provider: env.HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
+    if grep -q 'HOF_TOKEN.*Bearer token' "$installed/scripts/api.sh"; then \
+      echo 'Published Hall Of Fame helper still requires a manual HOF_TOKEN.' >&2; \
+      exit 1; \
+    fi; \
+    cp -a "$installed" /opt/openclaw-skills/halloffame; \
     chmod +x /opt/openclaw-skills/halloffame/scripts/api.sh; \
-    rm -rf /tmp/halloffame-plugins
+    rm -rf "$skill_home"
 
 COPY scripts/start.sh /usr/local/bin/railway-openclaw-start
 RUN chmod 0755 /usr/local/bin/railway-openclaw-start
