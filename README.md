@@ -39,6 +39,69 @@ halloffame-hq/halloffame.plugins
             └── api.sh
 ```
 
+## One-command Railway provisioning and deploy
+
+The repository includes a wrapper that provisions the persistent volume before deploying:
+
+```bash
+./scripts/deploy.sh
+```
+
+The wrapper runs:
+
+```text
+check selected Railway service
+        ↓
+look for a volume mounted at /data
+        ↓
+create it when missing
+        ↓
+railway up
+```
+
+It uses the Railway CLI and `jq`.
+
+Install the Railway CLI and authenticate it, then link the repository to the intended Railway project/service:
+
+```bash
+railway login
+railway link
+```
+
+After that, deploy with:
+
+```bash
+./scripts/deploy.sh
+```
+
+The volume provisioning step can also be run independently:
+
+```bash
+./scripts/provision-railway.sh
+```
+
+The default mount path is:
+
+```text
+/data
+```
+
+It can be overridden with:
+
+```bash
+OPENCLAW_VOLUME_MOUNT_PATH=/some/path ./scripts/deploy.sh
+```
+
+For automation where the service and environment are supplied explicitly, the scripts also accept Railway's standard context variables:
+
+```bash
+RAILWAY_SERVICE_ID=<service-id> \
+RAILWAY_ENVIRONMENT_ID=<environment-id> \
+./scripts/deploy.sh
+```
+
+The provisioning script is idempotent: if the selected service already has a volume mounted at the configured path, it leaves it in place and continues.
+
 ## Deploy to Railway
 
 Create a new Railway service from this GitHub repository.
