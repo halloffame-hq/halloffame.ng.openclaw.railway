@@ -5,11 +5,15 @@ set -euo pipefail
 : "${OPENCLAW_GATEWAY_TOKEN:?OPENCLAW_GATEWAY_TOKEN is required}"
 
 PORT="${PORT:-18789}"
-DATA_DIR="${RAILWAY_VOLUME_MOUNT_PATH:-${OPENCLAW_HOME:-/data}}"
+
+: "${RAILWAY_VOLUME_MOUNT_PATH:?A persistent Railway volume is required for OpenClaw state. Mount the service volume at /data.}"
+
+DATA_DIR="$RAILWAY_VOLUME_MOUNT_PATH"
 
 export OPENCLAW_HOME="$DATA_DIR"
 export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-$DATA_DIR/.openclaw}"
 export OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-$OPENCLAW_STATE_DIR/openclaw.json}"
+STATE_SENTINEL="$OPENCLAW_STATE_DIR/.railway-persistent-state"
 
 
 ensure_latest_openclaw() {
@@ -85,8 +89,46 @@ cp -a /opt/openclaw-skills/halloffame "$OPENCLAW_STATE_DIR/skills/halloffame"
 chown -R node:node "$OPENCLAW_STATE_DIR/skills/halloffame"
 chmod +x "$OPENCLAW_STATE_DIR/skills/halloffame/scripts/api.sh"
 
-if [[ ! -f "$OPENCLAW_CONFIG_PATH" ]]; then
+# /*
+#  * Existing installations created before the state sentinel was introduced
+#  * are adopted automatically when their OpenClaw config is already present.
+#  * An empty/replacement volume is never initialized silently.
+#  */
+if [[ -f "$OPENCLAW_CONFIG_PATH" ]]; then
+  if [[ ! -f "$STATE_SENTINEL" ]]; then
+    {
+      printf 'created_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'railway_volume_name=%s\n' "${RAILWAY_VOLUME_NAME:-unknown}"
+    } > "$STATE_SENTINEL"
+
+    chown node:node "$STATE_SENTINEL"
+    chmod 600 "$STATE_SENTINEL"
+    printf 'Adopted existing persistent OpenClaw state.\n'
+  fi
+else
+  if [[ -f "$STATE_SENTINEL" ]]; then
+    printf 'Persistent OpenClaw state marker exists, but %s is missing. Refusing to initialize over damaged state.\n' \
+      "$OPENCLAW_CONFIG_PATH" >&2
+    exit 1
+  fi
+
+  if [[ "${OPENCLAW_INITIALIZE_EMPTY_VOLUME:-0}" != "1" ]]; then
+    printf 'The attached Railway volume contains no OpenClaw config.\n' >&2
+    printf 'Refusing to create a fresh agent registry automatically.\n' >&2
+    printf 'For the first installation only, set OPENCLAW_INITIALIZE_EMPTY_VOLUME=1, deploy once, then remove it.\n' >&2
+    exit 1
+  fi
+
   run_openclaw setup --baseline --workspace "$OPENCLAW_STATE_DIR/workspace"
+
+  {
+    printf 'created_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'railway_volume_name=%s\n' "${RAILWAY_VOLUME_NAME:-unknown}"
+  } > "$STATE_SENTINEL"
+
+  chown node:node "$STATE_SENTINEL"
+  chmod 600 "$STATE_SENTINEL"
+  printf 'Initialized persistent OpenClaw state on the attached Railway volume.\n'
 fi
 
 run_openclaw config set gateway.mode local

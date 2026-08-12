@@ -40,14 +40,11 @@ if jq -e \
     )
   ' >/dev/null <<<"$volumes_json"
 then
-  printf 'Railway volume already mounted at %s.\n' "$MOUNT_PATH"
+  printf 'Persistent Railway volume confirmed at %s.\n' "$MOUNT_PATH"
   exit 0
 fi
 
-printf 'No existing persistent volume found. Explicitly provisioning a new Railway volume at %s...\n' "$MOUNT_PATH"
-
-railway volume add \
-  "${railway_args[@]}" \
-  --mount-path "$MOUNT_PATH"
-
-printf 'Railway volume created and mounted at %s.\n' "$MOUNT_PATH"
+printf 'No Railway volume is mounted at %s.\n' "$MOUNT_PATH" >&2
+printf 'Deployment aborted to protect persistent OpenClaw agent state.\n' >&2
+printf 'Run scripts/provision-railway.sh only when intentionally provisioning the service for the first time.\n' >&2
+exit 1

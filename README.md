@@ -286,6 +286,74 @@ Gateway starts on Railway's $PORT
 
 The Gateway is the foreground process supervised by Railway.
 
+## Persistent agent state
+
+All OpenClaw agent state lives on the Railway volume mounted at:
+
+```text
+/data
+```
+
+The active state directory is:
+
+```text
+/data/.openclaw
+```
+
+This includes:
+
+```text
+openclaw.json
+agents/<agentId>/agent/
+workspace/
+workspace-<agentId>/
+skills/
+```
+
+A normal Railway redeploy replaces the application container but keeps the attached volume, so the agent registry, personas, auth profiles, sessions, and workspaces remain available to the next deployment.
+
+The startup script now requires `RAILWAY_VOLUME_MOUNT_PATH`. It does not fall back to an ephemeral `/data` directory.
+
+It also maintains:
+
+```text
+/data/.openclaw/.railway-persistent-state
+```
+
+as a state sentinel. Existing deployments with a valid `openclaw.json` are adopted automatically the first time this protection is deployed.
+
+If a future deployment is accidentally attached to an empty replacement volume, startup stops instead of silently creating a new `main`-only OpenClaw installation.
+
+### First installation only
+
+Provision the volume explicitly:
+
+```bash
+./scripts/provision-railway.sh
+```
+
+For the first deployment to that deliberately empty volume, temporarily set:
+
+```env
+OPENCLAW_INITIALIZE_EMPTY_VOLUME=1
+```
+
+Deploy once, confirm the state was initialized, then remove that variable.
+
+### Normal deployments
+
+Use:
+
+```bash
+./scripts/deploy.sh
+```
+
+`deploy.sh` now calls `scripts/verify-volume.sh`. It requires the existing `/data` volume and never creates a replacement volume automatically.
+
+### Backups
+
+Railway supports backups for services with volumes. Enable volume backups for recovery from accidental deletion or state corruption; the persistent volume protects redeploys, while backups protect the volume itself.
+
 ## Automatic volume ownership recovery
 
 Railway may mount a persistent volume with root ownership. The container startup script repairs the OpenClaw state before invoking the CLI:
