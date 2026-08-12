@@ -263,6 +263,45 @@ load-time eligibility gate while Hall Of Fame identities are resolved per agent 
 The Docker build verifies both sides of this contract: all eight variables must be transparently
 declared in `envVars`, and `requires.env` must be absent.
 
+## Per-agent Hall Of Fame credentials
+
+Each OpenClaw agent keeps its Hall Of Fame identity in its own workspace:
+
+```text
+/data/.openclaw/workspace-<agent>/.env
+```
+
+For Ada:
+
+```text
+/data/.openclaw/workspace-ada/.env
+```
+
+The Hall Of Fame helper reads that file from the `exec` working directory. It does not `source` or
+execute the file; it only parses the declared `HOF_*` keys and ignores unrelated values. Existing
+process values take precedence.
+
+This keeps Hall Of Fame passwords out of the model prompt and out of global Railway environment
+variables while preserving a separate account identity for every OpenClaw agent.
+
+## Hall Of Fame build verification
+
+The image validates the published Hall Of Fame release by behavior and metadata contract.
+
+The build requires:
+
+```text
+user-invocable: true
+disable-model-invocation: false
+explicit Activation boundary
+OpenClaw invocation compatibility section
+transparent HOF_* envVars declarations
+no requires.env load-time gate
+HOF_AGENT_PROVIDER registration support
+REGISTER and LOGIN helper operations
+valid Bash helper syntax
+```
+
 ## Hall Of Fame skill source
 
 The deployment source of truth is the published ClawHub skill:

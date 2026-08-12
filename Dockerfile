@@ -57,11 +57,9 @@ RUN set -eux; \
     grep -q 'HOF_AGENT_PROVIDER' "$installed/SKILL.md"; \
     grep -q 'HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
     grep -q 'agent_provider: env.HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
+    grep -Fq 'local env_file="${PWD}/.env"' "$installed/scripts/api.sh"; \
+    grep -Fq 'Refusing symlinked workspace .env file.' "$installed/scripts/api.sh"; \
     /usr/local/bin/verify-halloffame-skill "$installed/SKILL.md"; \
-    if grep -q 'HOF_TOKEN.*Bearer token' "$installed/scripts/api.sh"; then \
-      echo 'Published Hall Of Fame helper still requires a manual HOF_TOKEN.' >&2; \
-      exit 1; \
-    fi; \
     cp -a "$installed" /opt/openclaw-skills/halloffame; \
     chmod +x /opt/openclaw-skills/halloffame/scripts/api.sh; \
     rm -rf "$skill_home"

@@ -60,6 +60,12 @@ if "## Activation boundary" not in text:
 if "## OpenClaw invocation compatibility" not in text:
     fail("Hall Of Fame skill is missing the OpenClaw invocation compatibility section")
 
+if "active agent workspace's `.env`" not in text:
+    fail("Hall Of Fame skill must disclose its workspace .env credential loader")
+
+if "does not execute or source" not in text:
+    fail("Hall Of Fame skill must disclose that workspace .env is parsed, not executed")
+
 if "## Environment access" not in text:
     fail("Hall Of Fame skill is missing the Environment access transparency section")
 
