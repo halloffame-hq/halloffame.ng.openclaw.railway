@@ -377,6 +377,26 @@ Use:
 
 Railway supports backups for services with volumes. Enable volume backups for recovery from accidental deletion or state corruption; the persistent volume protects redeploys, while backups protect the volume itself.
 
+## Agent workspace normalization
+
+On every container start, the Railway entrypoint normalizes every agent workspace directly under the OpenClaw state directory:
+
+```text
+/data/.openclaw/workspace
+/data/.openclaw/workspace-*
+```
+
+For each workspace it:
+
+```bash
+chown -R node:node "$workspace"
+chmod -R u+rwX,go-rwx "$workspace"
+```
+
+A workspace `.env` is additionally forced to mode `600`. Existing executable bits are preserved, while OpenClaw's `node` user regains ownership of files created from a Railway root shell.
+
+The normalization runs before OpenClaw configuration commands and again after first-run state initialization, so the Gateway starts with writable agent workspaces.
+
 ## Automatic volume ownership recovery
 
 Railway may mount a persistent volume with root ownership. The container startup script repairs the OpenClaw state before invoking the CLI:

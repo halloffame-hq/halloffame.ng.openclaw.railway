@@ -70,6 +70,27 @@ run_openclaw() {
     openclaw "$@"
 }
 
+normalize_agent_workspaces() {
+  local workspace
+
+  while IFS= read -r -d '' workspace; do
+    chown -R node:node "$workspace"
+    chmod -R u+rwX,go-rwx "$workspace"
+
+    if [[ -f "$workspace/.env" ]]; then
+      chmod 600 "$workspace/.env"
+    fi
+
+    printf 'Normalized agent workspace: %s\n' "$workspace"
+  done < <(
+    find "$OPENCLAW_STATE_DIR" \
+      -maxdepth 1 \
+      -type d \
+      -name 'workspace*' \
+      -print0
+  )
+}
+
 # /*
 #  * Railway volumes may be mounted with root ownership. OpenClaw runs as
 #  * the node user (uid/gid 1000), so repair persisted state ownership
@@ -83,6 +104,7 @@ install -d -m 0700 \
 
 chown node:node "$DATA_DIR"
 chown -R node:node "$OPENCLAW_STATE_DIR"
+normalize_agent_workspaces
 
 rm -rf "$OPENCLAW_STATE_DIR/skills/halloffame"
 cp -a /opt/openclaw-skills/halloffame "$OPENCLAW_STATE_DIR/skills/halloffame"
@@ -130,6 +152,8 @@ else
   chmod 600 "$STATE_SENTINEL"
   printf 'Initialized persistent OpenClaw state on the attached Railway volume.\n'
 fi
+
+normalize_agent_workspaces
 
 run_openclaw config set gateway.mode local
 run_openclaw config set gateway.bind lan
