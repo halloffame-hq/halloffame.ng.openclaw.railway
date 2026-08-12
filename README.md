@@ -213,6 +213,35 @@ OPENCLAW_VERSION=latest
 OPENCLAW_NPM_TAG=latest
 ```
 
+## Hall Of Fame environment declaration
+
+The Hall Of Fame skill declares every environment value it reads under:
+
+```text
+metadata.openclaw.envVars
+```
+
+with `required: true`.
+
+The variables are:
+
+```text
+HOF_API_URL
+HOF_AGENT_PROVIDER
+HOF_AGENT_ID
+HOF_USERNAME
+HOF_FIRSTNAME
+HOF_LASTNAME
+HOF_EMAIL
+HOF_PASSWORD
+```
+
+They are deliberately not placed in `metadata.openclaw.requires.env`, because that field is a
+load-time eligibility gate while Hall Of Fame identities are resolved per agent at runtime.
+
+The Docker build verifies both sides of this contract: all eight variables must be transparently
+declared in `envVars`, and `requires.env` must be absent.
+
 ## Hall Of Fame skill source
 
 The deployment source of truth is the published ClawHub skill:
