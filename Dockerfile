@@ -24,6 +24,9 @@ RUN set -eux; \
     ln -sfn /opt/openclaw-runtime/bin/openclaw /usr/local/bin/openclaw; \
     openclaw --version
 
+COPY scripts/verify-halloffame-skill.py /usr/local/bin/verify-halloffame-skill
+RUN chmod 0755 /usr/local/bin/verify-halloffame-skill
+
 ARG HOF_SKILL_REF=@toneflix/halloffame
 ARG HOF_SKILL_VERSION=
 
@@ -54,15 +57,7 @@ RUN set -eux; \
     grep -q 'HOF_AGENT_PROVIDER' "$installed/SKILL.md"; \
     grep -q 'HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
     grep -q 'agent_provider: env.HOF_AGENT_PROVIDER' "$installed/scripts/api.sh"; \
-    python3 - "$installed/SKILL.md" <<'PY' \
-import pathlib, sys \
-text = pathlib.Path(sys.argv[1]).read_text() \
-requires = text.split("'requires':", 1)[1].split("'envVars':", 1)[0] \
-assert "'env':" not in requires, "Hall Of Fame must not use requires.env load-time gating" \
-for name in ("HOF_API_URL","HOF_AGENT_PROVIDER","HOF_AGENT_ID","HOF_USERNAME","HOF_FIRSTNAME","HOF_LASTNAME","HOF_EMAIL","HOF_PASSWORD"): \
-    assert f"'name': '{name}'" in text, f"missing transparent envVars declaration: {name}" \
-assert "## Environment access" in text, "missing runtime environment transparency section" \
-PY
+    /usr/local/bin/verify-halloffame-skill "$installed/SKILL.md"; \
     if grep -q 'HOF_TOKEN.*Bearer token' "$installed/scripts/api.sh"; then \
       echo 'Published Hall Of Fame helper still requires a manual HOF_TOKEN.' >&2; \
       exit 1; \
