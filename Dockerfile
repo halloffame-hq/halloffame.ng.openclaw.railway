@@ -34,10 +34,11 @@ RUN set -eux; \
     export OPENCLAW_HOME="$skill_home"; \
     export OPENCLAW_STATE_DIR="$skill_home/.openclaw"; \
     export OPENCLAW_CONFIG_PATH="$OPENCLAW_STATE_DIR/openclaw.json"; \
-    openclaw skills verify "$HOF_SKILL_REF"; \
     if [ -n "$HOF_SKILL_VERSION" ]; then \
+      openclaw skills verify "$HOF_SKILL_REF" --version "$HOF_SKILL_VERSION"; \
       openclaw skills install "$HOF_SKILL_REF" --global --version "$HOF_SKILL_VERSION"; \
     else \
+      openclaw skills verify "$HOF_SKILL_REF"; \
       openclaw skills install "$HOF_SKILL_REF" --global; \
     fi; \
     installed="$OPENCLAW_STATE_DIR/skills/halloffame"; \

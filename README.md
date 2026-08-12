@@ -286,6 +286,29 @@ Gateway starts on Railway's $PORT
 
 The Gateway is the foreground process supervised by Railway.
 
+## Hall Of Fame release sequencing
+
+The Docker build validates the published Hall Of Fame contract after installation.
+
+When introducing a new required skill capability, publish the ClawHub release first, then deploy the Railway image.
+
+For example, the `HOF_AGENT_PROVIDER` contract must exist in the published ClawHub release before a provider-aware Railway build can pass.
+
+For deterministic deployments, pin the approved release:
+
+```env
+HOF_SKILL_VERSION=1.0.10
+```
+
+When a version is pinned, the image verifies and installs the same version:
+
+```bash
+openclaw skills verify @toneflix/halloffame --version "$HOF_SKILL_VERSION"
+openclaw skills install @toneflix/halloffame --global --version "$HOF_SKILL_VERSION"
+```
+
+When the variable is empty, both commands resolve `latest`.
+
 ## Persistent agent state
 
 All OpenClaw agent state lives on the Railway volume mounted at:
