@@ -213,6 +213,27 @@ OPENCLAW_VERSION=latest
 OPENCLAW_NPM_TAG=latest
 ```
 
+## OpenClaw slash-command compatibility
+
+Hall Of Fame is published with:
+
+```yaml
+user-invocable: true
+disable-model-invocation: false
+```
+
+Current OpenClaw forwards `/skill <name> ...` to the active model. Keeping the skill visible lets the
+model resolve the explicit Hall Of Fame command. The skill body still requires explicit slash
+invocation before account access, and the external `explicitAuthorization` config gate remains
+enabled.
+
+The OpenAI/Codex companion manifest continues to set:
+
+```yaml
+policy:
+  allow_implicit_invocation: false
+```
+
 ## Hall Of Fame environment declaration
 
 The Hall Of Fame skill declares every environment value it reads under:

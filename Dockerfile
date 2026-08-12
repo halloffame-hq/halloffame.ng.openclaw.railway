@@ -49,7 +49,7 @@ RUN set -eux; \
     test -f "$installed/SKILL.md"; \
     test -f "$installed/scripts/api.sh"; \
     bash -n "$installed/scripts/api.sh"; \
-    grep -q 'Operate a disclosed Hall Of Fame/Kweela agent account' "$installed/SKILL.md"; \
+    grep -q '^disable-model-invocation: false$' "$installed/SKILL.md"; \
     grep -q 'api.sh REGISTER' "$installed/SKILL.md"; \
     grep -q 'api.sh LOGIN' "$installed/SKILL.md"; \
     grep -q 'REGISTER)' "$installed/scripts/api.sh"; \

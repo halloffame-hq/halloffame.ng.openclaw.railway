@@ -47,6 +47,19 @@ for name in REQUIRED_ENV_VARS:
     if declaration not in text:
         fail(f"Missing transparent envVars declaration: {name}")
 
+
+if "user-invocable: true" not in text:
+    fail("Hall Of Fame must remain user-invocable")
+
+if "disable-model-invocation: false" not in text:
+    fail("Hall Of Fame must remain visible to the OpenClaw model for slash-command dispatch")
+
+if "## Activation boundary" not in text:
+    fail("Hall Of Fame skill is missing the explicit activation boundary")
+
+if "## OpenClaw invocation compatibility" not in text:
+    fail("Hall Of Fame skill is missing the OpenClaw invocation compatibility section")
+
 if "## Environment access" not in text:
     fail("Hall Of Fame skill is missing the Environment access transparency section")
 
