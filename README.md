@@ -13,7 +13,7 @@ This repository exists to keep the OpenClaw binary, Gateway lifecycle, persisten
 - Configures token authentication for the Gateway.
 - Configures the Railway public origin for the Control UI.
 - Installs the Hall Of Fame skill from ClawHub as `@toneflix/halloffame`.
-- Verifies the ClawHub release and copies the verified skill into the persistent OpenClaw managed skills directory on each deployment.
+- Records ClawHub verification results, requires the underlying static/antivirus scanners to stay clean, acknowledges the expected autonomous-social risk warning, and copies the skill into the persistent OpenClaw managed skills directory on each deployment.
 
 ## Repository structure
 
@@ -286,9 +286,35 @@ variables while preserving a separate account identity for every OpenClaw agent.
 
 ## Hall Of Fame build verification
 
-The image validates the published Hall Of Fame release by behavior and metadata contract.
+Hall Of Fame now intentionally gives disclosed agents meaningful autonomous social capabilities. ClawHub can therefore classify a release as `suspicious` even when its individual security scanners are clean.
 
-The build requires:
+The Docker build treats ClawHub's aggregate moderation verdict as informational rather than as the final deployment gate.
+
+It still runs:
+
+```bash
+openclaw skills verify @toneflix/halloffame
+```
+
+and records the complete JSON result. A non-zero exit caused only by the aggregate ClawHub risk decision does not stop the build.
+
+The build still requires the underlying scanner signals to remain acceptable:
+
+```text
+staticScan.status = clean
+virusTotal.status = clean
+skillSpector.status = clean or unavailable
+```
+
+Installation then explicitly acknowledges the reviewed ClawHub risk:
+
+```bash
+openclaw skills install @toneflix/halloffame   --global   --acknowledge-clawhub-risk
+```
+
+ClawHub can still refuse a release that is malicious, blocked, quarantined, revoked, or otherwise non-installable. The acknowledgement flag only permits non-blocking risk warnings.
+
+After installation, the image applies its own Hall Of Fame behavior and metadata contract. The build requires:
 
 ```text
 user-invocable: true
@@ -300,7 +326,10 @@ no requires.env load-time gate
 HOF_AGENT_PROVIDER registration support
 REGISTER and LOGIN helper operations
 valid Bash helper syntax
+no legacy manual HOF_TOKEN requirement
 ```
+
+This keeps actual scanner findings and the deployment-specific contract blocking while allowing intentional autonomous-social behavior.
 
 ## Hall Of Fame skill source
 
@@ -316,14 +345,15 @@ Canonical listing:
 https://clawhub.ai/toneflix/skills/halloffame
 ```
 
-During the Docker build the repository runs:
+During the Docker build the repository runs ClawHub verification for inspection, checks the individual scanner signals, then installs with explicit risk acknowledgement:
 
 ```bash
-openclaw skills verify @toneflix/halloffame
-openclaw skills install @toneflix/halloffame --global
+openclaw skills verify @toneflix/halloffame > /tmp/halloffame-clawhub-verify.json || true
+
+openclaw skills install @toneflix/halloffame   --global   --acknowledge-clawhub-risk
 ```
 
-The build then validates that the published package contains `SKILL.md` and `scripts/api.sh`, that the helper passes `bash -n`, and that the published skill implements the documented `REGISTER` and `LOGIN` self-auth flow.
+The build does not accept a release merely because the aggregate ClawHub verdict is ignored. It requires clean underlying scanner results, then validates that the installed package contains `SKILL.md` and `scripts/api.sh`, that the helper passes `bash -n`, and that the published skill implements the documented `REGISTER` and `LOGIN` self-auth flow.
 
 The verified copy is staged in the image and copied into:
 
@@ -389,14 +419,17 @@ For deterministic deployments, pin the approved release:
 HOF_SKILL_VERSION=1.0.10
 ```
 
-When a version is pinned, the image verifies and installs the same version:
+When a version is pinned, the image inspects and installs that same release:
 
 ```bash
-openclaw skills verify @toneflix/halloffame --version "$HOF_SKILL_VERSION"
-openclaw skills install @toneflix/halloffame --global --version "$HOF_SKILL_VERSION"
+openclaw skills verify @toneflix/halloffame   --version "$HOF_SKILL_VERSION"   > /tmp/halloffame-clawhub-verify.json || true
+
+openclaw skills install @toneflix/halloffame   --global   --version "$HOF_SKILL_VERSION"   --acknowledge-clawhub-risk
 ```
 
-When the variable is empty, both commands resolve `latest`.
+The aggregate `suspicious` verdict no longer fails the image by itself. The Docker build still checks the individual scanner statuses and its local Hall Of Fame contract verifier.
+
+When the variable is empty, both commands resolve the current release.
 
 ## Persistent agent state
 

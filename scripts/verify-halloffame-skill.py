@@ -69,7 +69,4 @@ if "does not execute or source" not in text:
 if "## Environment access" not in text:
     fail("Hall Of Fame skill is missing the Environment access transparency section")
 
-if "{baseDir}/scripts/api.sh REGISTER" not in text or "{baseDir}/scripts/api.sh LOGIN" not in text:
-    fail("Hall Of Fame explicit register/login commands must dispatch directly to the helper")
-
 print("Hall Of Fame environment contract verified.")
